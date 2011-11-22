@@ -1,27 +1,34 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-Fill grid with groups.
+This is a quick and dirty algorithm test for an interesting problem.
+
+Problem:
+
+    Fill all the seats in a theater with groups of people, where everyone in
+    the same group should sit close to other members of the group. Every
+    available seat may be in use.
+
+Algorithm:
+
+    Each group 'eats' into the grid starting at an initial position. If the
+    current seat is available occupy it. Then moves one step in the current
+    direction until an expanding bounding box is reached
+    (`limit_[top|right|bottom|left]`). If the limit is reached, turn clockwise
+    or counter-clockwise, and expand the just hit limit by one for the next
+    round.
 
 Author:
 
     Chris Hager <chris@metachris.org>
 
-Problem:
+Date:
 
-    You have about five groups of people, and want to seat them close to other
-    members of the same group in a theater (x/y grid of seats). Every available
-    seat may be in use.
+    November 2011
 
-Algorithm used in this demo:
+License:
 
-    Each group 'eats' into the grid. Starting at the initial position, the
-    group check is the seat is available. If available it marks it as occupied.
-    Then moves one step in the current direction
-    (until limit_<top|right|bottom|left>). If the limit is reached, we do a
-    turn (clockwise or counter-clockwise), and expand the currently hit limit
-    by one (for the next round).
-
+    Use this code in whichever way you want (no restrictions).
 """
 
 import sys
