@@ -1,9 +1,19 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-Fill grid with groups demo.
+Fill grid with groups.
 
-Algorithm:
+Author:
+
+    Chris Hager <chris@metachris.org>
+
+Problem:
+
+    You have about five groups of people, and want to seat them close to other
+    members of the same group in a theater (x/y grid of seats). Every available
+    seat may be in use.
+
+Algorithm used in this demo:
 
     Each group 'eats' into the grid. Starting at the initial position, the
     group check is the seat is available. If available it marks it as occupied.
@@ -12,7 +22,6 @@ Algorithm:
     turn (clockwise or counter-clockwise), and expand the currently hit limit
     by one (for the next round).
 
-Created by Chris Hager <chris@metachris.org> on 2011-11-20.
 """
 
 import sys
@@ -126,6 +135,12 @@ class Group(object):
         """Eat into grid"""
         self.grid = grid
 
+        # Error out if there are not enough seats
+        count_free = self.grid.count_free()
+        if self.count > count_free:
+            raise IndexError("Not enough available positions in the grid " + \
+                    "(%s available, %s required)" % (count_free, self.count))
+
         # Set initial limits (1 in each direction)
         self.limit_left = self.cur_pos.x - 1 if self.cur_pos.x - 1 >= 0 else 0
         self.limit_right = self.cur_pos.x + 1 if self.cur_pos.x + 1 < \
@@ -134,26 +149,19 @@ class Group(object):
         self.limit_bottom = self.cur_pos.y + 1 if self.cur_pos.y + 1 < \
                 grid.rows else grid.rows - 1
 
-        #print "eatIn %s - %s" % (len(self.seats), self.count)
+        # Occupy seats until we have enough
         while (len(self.seats) < self.count):
-            self._eatIn()
+            if self.grid.is_free(self.cur_pos):
+                self.grid.set_used(self.cur_pos, self.id)
+                self.seats.append(self.cur_pos)
+
+            # Update the current position, and change direction if necessary
             self.updatePos()
-
-    def _eatIn(self):
-        """Try to eat into a specific position (self.cur_pos)"""
-        # Error out if there are no more available seats
-        if not self.grid.count_free():
-            raise IndexError("No more available positions in the grid")
-
-        # Free seats available. Check current position
-        is_free = self.grid.is_free(self.cur_pos)
-        if is_free:
-            self.grid.set_used(self.cur_pos, self.id)
-            self.seats.append(self.cur_pos)
 
     def updatePos(self):
         """
-        Update current position based on the current direction and the limits
+        Update current position based on the current direction and the limits.
+        If outside of limit, update direction and expand the limit.
         """
         if self.cur_dir == DIR_RIGHT:
             x = self.cur_pos.x + 1
@@ -244,7 +252,7 @@ class Group(object):
 def main():
     GROUPS = [
         # Group(id, seats, start-position, start-direction[, rotation])
-        Group("1", 30, Pos(COLUMNS / 2, ROWS - 1), DIR_LEFT),
+        Group("1", 30, Pos(COLUMNS / 2, 0), DIR_LEFT),
         Group("2", 30, Pos(0, 0), DIR_RIGHT),
         Group("3", 36, Pos(COLUMNS - 1, 0), DIR_LEFT, ROT_COUNTERCLOCKWISE),
         Group("4", 28, Pos(0, ROWS - 1), DIR_RIGHT, ROT_COUNTERCLOCKWISE),
