@@ -40,12 +40,12 @@ ROWS = 10
 COLUMNS = 15
 
 # Do not change the settings below
-DIR_RIGHT = 1
-DIR_BOTTOM = 2
-DIR_LEFT = 3
-DIR_TOP = 4
-ROT_CLOCKWISE = 1
-ROT_COUNTERCLOCKWISE = 2
+DIR_RIGHT = 0
+DIR_BOTTOM = 1
+DIR_LEFT = 2
+DIR_TOP = 3
+ROT_CLOCKWISE = 0
+ROT_COUNTERCLOCKWISE = 1
 
 
 class Pos(object):
@@ -76,22 +76,6 @@ class Grid(object):
         for _ in xrange(rows):
             self.grid.append(self.EMPTY * cols)
 
-    def show(self):
-        """Print the grid"""
-        out = "     "
-        for i in xrange(self.cols):
-            out += "%2s " % i
-        out += "\n\n"
-
-        cnt = 0
-        for line in self.grid:
-            out += "%2s   " % cnt
-            cnt += 1
-            for seat in line:
-                out += " %s " % seat
-            out += "\n"
-        print out
-
     def is_free(self, pos):
         """Returns true if position in grid is free"""
         return self.grid[pos.y][pos.x] == self.EMPTY
@@ -107,6 +91,26 @@ class Grid(object):
         for row in self.grid:
             cnt += row.count(self.EMPTY)
         return cnt
+
+    def show(self):
+        """Pretty print the grid"""
+        # Add the header line with column index
+        out = "     "
+        for i in xrange(self.cols):
+            out += "%2s " % i
+        out += "\n\n"
+
+        # Add the content lines, preceded by the line number
+        cnt = 0
+        for line in self.grid:
+            out += "%2s   " % cnt
+            cnt += 1
+            for seat in line:
+                out += " %s " % seat
+            out += "\n"
+
+        # Print the pretty grid representation
+        print out
 
 
 class Group(object):
@@ -129,17 +133,21 @@ class Group(object):
     def __init__(self, id, count, start_pos, start_dir,
             rotation=ROT_CLOCKWISE):
         self.seats = []
-        self.id = id
         self.count = count
         self.cur_pos = start_pos
         self.cur_dir = start_dir
         self.rotation = rotation
 
+        # Only accept a valid id (single-digit)
+        if id is None or len(str(id)) > 1:
+            raise TypeError("Group id needs to be one digit, not '%s'" % id)
+        self.id = str(id)
+
     def __str__(self):
         return "<Group-%s(%s)>" % (self.id, self.count)
 
-    def eatIn(self, grid):
-        """Eat into grid"""
+    def occupy(self, grid):
+        """Occupy this groups part in the grid"""
         self.grid = grid
 
         # Error out if there are not enough seats
@@ -163,95 +171,67 @@ class Group(object):
                 self.seats.append(self.cur_pos)
 
             # Update the current position, and change direction if necessary
-            self.updatePos()
+            self.move()
 
-    def updatePos(self):
+    def move(self):
         """
-        Update current position based on the current direction and the limits.
-        If outside of limit, update direction and expand the limit.
+        Move in current direction by 1. If outside of limit, update direction
+        and expand the limit.
         """
         if self.cur_dir == DIR_RIGHT:
-            x = self.cur_pos.x + 1
-            if x > self.limit_right:
-                # cannot move to the right. turn now and expand.
-                self.updateDir()
+            if self.cur_pos.x + 1 > self.limit_right:
+                self.turn()
             else:
-                self.cur_pos.x = x
+                self.cur_pos.x = self.cur_pos.x + 1
 
         elif self.cur_dir == DIR_BOTTOM:
-            y = self.cur_pos.y + 1
-            if y > self.limit_bottom:
-                # cannot move. turn now and expand.
-                self.updateDir()
+            if self.cur_pos.y + 1 > self.limit_bottom:
+                self.turn()
             else:
-                self.cur_pos.y = y
+                self.cur_pos.y = self.cur_pos.y + 1
 
         elif self.cur_dir == DIR_LEFT:
-            x = self.cur_pos.x - 1
-            if x < self.limit_left:
-                # cannot move to the right. turn now and expand.
-                self.updateDir()
+            if self.cur_pos.x - 1 < self.limit_left:
+                self.turn()
             else:
-                self.cur_pos.x = x
+                self.cur_pos.x = self.cur_pos.x - 1
 
         elif self.cur_dir == DIR_TOP:
-            y = self.cur_pos.y - 1
-            if y < self.limit_top:
-                # cannot move to the right. turn now and expand.
-                self.updateDir()
+            if self.cur_pos.y - 1 < self.limit_top:
+                self.turn()
             else:
-                self.cur_pos.y = y
+                self.cur_pos.y = self.cur_pos.y - 1
 
-    def updateDir(self):
-        """Updates self.cur_dir with a 90 degree turn"""
+    def turn(self):
+        """
+        Expands the limit in the current direction by one and updates
+        self.cur_dir with a 90 degree turn either cw or ccw.
+        """
+        self.expand_limit()
         if self.rotation == ROT_CLOCKWISE:
-            self.updateDirClockwise()
+            # Turn clockwise
+            self.cur_dir = (self.cur_dir + 1) % 4
         else:
-            self.updateDirCounterClockwise()
+            # Turn counter-clockwise
+            self.cur_dir = (self.cur_dir - 1) % 4
 
-    def updateDirClockwise(self):
-        """Turn clockwise and expand limit"""
+    def expand_limit(self):
+        """Expands the limit in the current direction by 1, if enough space"""
         if self.cur_dir == DIR_RIGHT:
-            self.cur_dir = DIR_BOTTOM
             if self.limit_right + 1 < self.grid.cols:
                 self.limit_right += 1
 
         elif self.cur_dir == DIR_BOTTOM:
-            self.cur_dir = DIR_LEFT
             if self.limit_bottom + 1 < self.grid.rows:
                 self.limit_bottom += 1
 
         elif self.cur_dir == DIR_LEFT:
-            self.cur_dir = DIR_TOP
-            if self.limit_left - 1 > 0:
+            if self.limit_left - 1 >= 0:
                 self.limit_left -= 1
 
         elif self.cur_dir == DIR_TOP:
-            self.cur_dir = DIR_RIGHT
             if self.limit_top - 1 >= 0:
                 self.limit_top -= 1
-
-    def updateDirCounterClockwise(self):
-        """Turn counter clockwise and expand limit"""
-        if self.cur_dir == DIR_RIGHT:
-            self.cur_dir = DIR_TOP
-            if self.limit_right + 1 < self.grid.cols:
-                self.limit_right += 1
-
-        elif self.cur_dir == DIR_TOP:
-            self.cur_dir = DIR_LEFT
-            if self.limit_top - 1 >= 0:
-                self.limit_top -= 1
-
-        elif self.cur_dir == DIR_LEFT:
-            self.cur_dir = DIR_BOTTOM
-            if self.limit_left - 1 > 0:
-                self.limit_left -= 1
-
-        elif self.cur_dir == DIR_BOTTOM:
-            self.cur_dir = DIR_RIGHT
-            if self.limit_bottom + 1 < self.grid.rows:
-                self.limit_bottom += 1
 
 
 def get_groups():
@@ -264,11 +244,11 @@ def get_groups():
 
     # List of groups (id, seats, start-position, start-direction[, rotation]))
     return [
-        Group("#", 30, Pos(center, bottom), DIR_LEFT),
+        Group("#", 24, Pos(center, bottom), DIR_LEFT),
         Group("*", 28, Pos(left, bottom),   DIR_TOP,  ROT_COUNTERCLOCKWISE),
-        Group("/", 26, Pos(right, bottom),  DIR_LEFT, ROT_COUNTERCLOCKWISE),
-        Group("o", 30, Pos(left, top),      DIR_RIGHT),
-        Group("x", 36, Pos(right, top),     DIR_LEFT, ROT_COUNTERCLOCKWISE),
+        Group("/", 25, Pos(right, bottom),  DIR_LEFT),
+        Group("o", 36, Pos(left, top),      DIR_RIGHT),
+        Group("x", 37, Pos(right, top),     DIR_LEFT, ROT_COUNTERCLOCKWISE),
     ]
 
 
@@ -278,7 +258,7 @@ def main():
 
     # Let groups eat into the grid, one by one
     for group in get_groups():
-        group.eatIn(grid)
+        group.occupy(grid)
 
     # Pretty print the final grid
     grid.show()
