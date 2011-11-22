@@ -129,7 +129,7 @@ class Group(object):
         self.rotation = rotation
 
     def __str__(self):
-        return "<Group(%s)>" % (self.count)
+        return "<Group-%s(%s)>" % (self.id, self.count)
 
     def eatIn(self, grid):
         """Eat into grid"""
@@ -221,10 +221,8 @@ class Group(object):
 
         elif self.cur_dir == DIR_TOP:
             self.cur_dir = DIR_RIGHT
-            if self.limit_top - 1 > 0:
+            if self.limit_top - 1 >= 0:
                 self.limit_top -= 1
-
-        #print "Changed dir to %s" % self.cur_dir
 
     def updateDirCounterClockwise(self):
         """Turn counter clockwise and expand limit"""
@@ -235,7 +233,7 @@ class Group(object):
 
         elif self.cur_dir == DIR_TOP:
             self.cur_dir = DIR_LEFT
-            if self.limit_top - 1 > 0:
+            if self.limit_top - 1 >= 0:
                 self.limit_top -= 1
 
         elif self.cur_dir == DIR_LEFT:
@@ -249,24 +247,33 @@ class Group(object):
                 self.limit_bottom += 1
 
 
-def main():
-    GROUPS = [
-        # Group(id, seats, start-position, start-direction[, rotation])
-        Group("1", 30, Pos(COLUMNS / 2, 0), DIR_LEFT),
-        Group("2", 30, Pos(0, 0), DIR_RIGHT),
-        Group("3", 36, Pos(COLUMNS - 1, 0), DIR_LEFT, ROT_COUNTERCLOCKWISE),
-        Group("4", 28, Pos(0, ROWS - 1), DIR_RIGHT, ROT_COUNTERCLOCKWISE),
-        Group("5", 26, Pos(COLUMNS - 1, ROWS - 1), DIR_LEFT)
+def get_groups():
+    # Helpers for initial positioning the groups
+    center = COLUMNS / 2
+    left = 0
+    top = 0
+    right = COLUMNS - 1
+    bottom = ROWS - 1
+
+    # List of groups (id, seats, start-position, start-direction[, rotation]))
+    return [
+        Group("#", 30, Pos(center, bottom), DIR_LEFT),
+        Group("*", 28, Pos(left, bottom),   DIR_TOP,  ROT_COUNTERCLOCKWISE),
+        Group("/", 26, Pos(right, bottom),  DIR_LEFT, ROT_COUNTERCLOCKWISE),
+        Group("o", 30, Pos(left, top),      DIR_RIGHT),
+        Group("x", 36, Pos(right, top),     DIR_LEFT, ROT_COUNTERCLOCKWISE),
     ]
 
+
+def main():
     # Instantiate the grid
     grid = Grid(ROWS, COLUMNS)
 
-    # Add all groups to the grid
-    for group in GROUPS:
+    # Let groups eat into the grid, one by one
+    for group in get_groups():
         group.eatIn(grid)
 
-    # Pretty print
+    # Pretty print the final grid
     grid.show()
 
 
