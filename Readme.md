@@ -17,7 +17,9 @@ Each group 'eats' into the grid starting at an initial position. If the current 
 
 #### Input
 
-    [
+	grid = Grid(rows=10, cols=15)
+	...
+    groups = [
         # Group(id, seats, start-position, start-direction[, rotation]))
         Group("#", 24, Pos(center, bottom), DIR_LEFT),
         Group("*", 28, Pos(left, bottom),   DIR_TOP,  ROT_COUNTERCLOCKWISE),

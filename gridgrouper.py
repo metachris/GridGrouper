@@ -35,10 +35,6 @@ import sys
 import os
 import math
 
-# Grid size (seats) [adjust as wanted]
-ROWS = 10
-COLUMNS = 15
-
 # Do not change the settings below
 DIR_RIGHT = 0
 DIR_BOTTOM = 1
@@ -67,7 +63,7 @@ class Grid(object):
     rows = 0
     cols = 0
 
-    EMPTY = u"-"
+    EMPTY = u" "
 
     def __init__(self, rows, cols):
         """Init Grid with - (empty seats)"""
@@ -234,13 +230,26 @@ class Group(object):
                 self.limit_top -= 1
 
 
-def get_groups():
-    # Helpers for initial positioning the groups
-    center = COLUMNS / 2
+def main():
+    # Instantiate the grid (adjust size as wanted)
+    grid = Grid(rows=10, cols=16)
+
+    # Let groups eat into the grid, one by one
+    for group in get_groups(grid.rows, grid.cols):
+        group.occupy(grid)
+
+    # Pretty print the final grid
+    grid.show()
+
+
+def get_groups(rows, cols):
+    """Return the initial list of Groups"""
+    # Initial positioning helpers
+    center = cols / 2
     left = 0
     top = 0
-    right = COLUMNS - 1
-    bottom = ROWS - 1
+    right = cols - 1
+    bottom = rows - 1
 
     # List of groups (id, seats, start-position, start-direction[, rotation]))
     return [
@@ -250,18 +259,6 @@ def get_groups():
         Group(u"✌", 36, Pos(left, top),      DIR_RIGHT),
         Group(u"♪", 37, Pos(right, top),     DIR_LEFT, ROT_COUNTERCLOCKWISE),
     ]
-
-
-def main():
-    # Instantiate the grid
-    grid = Grid(ROWS, COLUMNS)
-
-    # Let groups eat into the grid, one by one
-    for group in get_groups():
-        group.occupy(grid)
-
-    # Pretty print the final grid
-    grid.show()
 
 
 if __name__ == '__main__':
