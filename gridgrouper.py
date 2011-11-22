@@ -67,7 +67,7 @@ class Grid(object):
     rows = 0
     cols = 0
 
-    EMPTY = "-"
+    EMPTY = u"-"
 
     def __init__(self, rows, cols):
         """Init Grid with - (empty seats)"""
@@ -82,8 +82,8 @@ class Grid(object):
 
     def set_used(self, pos, id):
         """Mark a seat as used"""
-        self.grid[pos.y] = self.grid[pos.y][:pos.x] + id + \
-                self.grid[pos.y][pos.x + 1:]
+        self.grid[pos.y] = unicode(self.grid[pos.y][:pos.x] + id + \
+                self.grid[pos.y][pos.x + 1:])
 
     def count_free(self):
         """Returns the count of free positions"""
@@ -139,9 +139,9 @@ class Group(object):
         self.rotation = rotation
 
         # Only accept a valid id (single-digit)
-        if id is None or len(str(id)) > 1:
+        if id is None or len(unicode(id)) != 1:
             raise TypeError("Group id needs to be one digit, not '%s'" % id)
-        self.id = str(id)
+        self.id = unicode(id)
 
     def __str__(self):
         return "<Group-%s(%s)>" % (self.id, self.count)
@@ -244,11 +244,11 @@ def get_groups():
 
     # List of groups (id, seats, start-position, start-direction[, rotation]))
     return [
-        Group("#", 24, Pos(center, bottom), DIR_LEFT),
-        Group("*", 28, Pos(left, bottom),   DIR_TOP,  ROT_COUNTERCLOCKWISE),
-        Group("/", 25, Pos(right, bottom),  DIR_LEFT),
-        Group("o", 36, Pos(left, top),      DIR_RIGHT),
-        Group("x", 37, Pos(right, top),     DIR_LEFT, ROT_COUNTERCLOCKWISE),
+        Group(u"♥", 24, Pos(center, bottom), DIR_LEFT),
+        Group(u"☼", 28, Pos(left, bottom),   DIR_TOP,  ROT_COUNTERCLOCKWISE),
+        Group(u"☺", 25, Pos(right, bottom),  DIR_LEFT),
+        Group(u"✌", 36, Pos(left, top),      DIR_RIGHT),
+        Group(u"♪", 37, Pos(right, top),     DIR_LEFT, ROT_COUNTERCLOCKWISE),
     ]
 
 
