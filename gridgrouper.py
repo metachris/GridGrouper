@@ -244,11 +244,11 @@ def get_groups():
 
     # List of groups (id, seats, start-position, start-direction[, rotation]))
     return [
-        Group(u"♥", 24, Pos(center, bottom), DIR_LEFT),
-        Group(u"☼", 28, Pos(left, bottom),   DIR_TOP,  ROT_COUNTERCLOCKWISE),
-        Group(u"☺", 25, Pos(right, bottom),  DIR_LEFT),
-        Group(u"✌", 36, Pos(left, top),      DIR_RIGHT),
-        Group(u"♪", 37, Pos(right, top),     DIR_LEFT, ROT_COUNTERCLOCKWISE),
+        Group(u"#", 24, Pos(center, bottom), DIR_LEFT),
+        Group(u"o", 28, Pos(left, bottom),   DIR_TOP,  ROT_COUNTERCLOCKWISE),
+        Group(u"/", 25, Pos(right, bottom),  DIR_LEFT),
+        Group(u"=", 36, Pos(left, top),      DIR_RIGHT),
+        Group(u"x", 37, Pos(right, top),     DIR_LEFT, ROT_COUNTERCLOCKWISE),
     ]
 
 
