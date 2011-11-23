@@ -126,7 +126,7 @@ class Group(object):
     limit_right = None
     limit_bottom = None
 
-    def __init__(self, id, count, start_pos, start_dir,
+    def __init__(self, id, count, start_pos=None, start_dir=DIR_LEFT,
             rotation=ROT_CLOCKWISE):
         self.seats = []
         self.count = count
@@ -142,6 +142,29 @@ class Group(object):
     def __str__(self):
         return "<Group-%s(%s)>" % (self.id, self.count)
 
+    def find_initial_pos(self):
+        """
+        Find an initial position in the grid, start at the bottom right and
+        move left and up if too far left.
+        """
+        # Tweak the number of minimum required free columns on the left
+        MIN_LEFT = 2
+
+        # Set initial position (almost) bottom right
+        pos = Pos(self.grid.cols - 2, self.grid.rows - 2)
+
+        # Search until found or out of space
+        found = False
+        while not found:
+            if self.grid.is_free(pos):
+                return pos
+            pos.x -= 1
+            if pos.x < MIN_LEFT:
+                pos.x = self.grid.cols - 1
+                pos.y -= 1
+                if pos.y < 0:
+                    raise IndexError("Could not find an initial position")
+
     def occupy(self, grid):
         """Occupy this groups part in the grid"""
         self.grid = grid
@@ -151,6 +174,9 @@ class Group(object):
         if self.count > count_free:
             raise IndexError("Not enough available positions in the grid " + \
                     "(%s available, %s required)" % (count_free, self.count))
+
+        if not self.cur_pos:
+            self.cur_pos = self.find_initial_pos()
 
         # Set initial limits (1 in each direction)
         self.limit_left = self.cur_pos.x - 1 if self.cur_pos.x - 1 >= 0 else 0
@@ -232,7 +258,7 @@ class Group(object):
 
 def main():
     # Instantiate the grid (adjust size as wanted)
-    grid = Grid(rows=10, cols=16)
+    grid = Grid(rows=10, cols=19)
 
     # Let groups eat into the grid, one by one
     for group in get_groups(grid.rows, grid.cols):
@@ -244,21 +270,28 @@ def main():
 
 def get_groups(rows, cols):
     """Return the initial list of Groups"""
-    # Initial positioning helpers
-    center = cols / 2
-    left = 0
-    top = 0
-    right = cols - 1
-    bottom = rows - 1
-
-    # List of groups (id, seats, start-position, start-direction[, rotation]))
+    # 5 groups without start-parameters (will auto-position)
     return [
-        Group(u"♥", 24, Pos(center, bottom), DIR_LEFT),
-        Group(u"☼", 28, Pos(left, bottom),   DIR_TOP,  ROT_COUNTERCLOCKWISE),
-        Group(u"☺", 25, Pos(right, bottom),  DIR_LEFT),
-        Group(u"✌", 36, Pos(left, top),      DIR_RIGHT),
-        Group(u"♪", 37, Pos(right, top),     DIR_LEFT, ROT_COUNTERCLOCKWISE),
+        Group(u"♥", 24),
+        Group(u"☼", 28),
+        Group(u"✌", 25),
+        Group(u"☺", 36),
+        Group(u"♪", 37),
     ]
+
+    # You can manually set the initial position and other params like this:
+    # center = cols / 2
+    # left = 0
+    # top = 0
+    # right = cols - 1
+    # bottom = rows - 1
+    # return [
+    #     Group(u"♥", 24, Pos(center, bottom), DIR_LEFT),
+    #     Group(u"☼", 28, Pos(left, bottom),   DIR_TOP,  ROT_COUNTERCLOCKWISE),
+    #     Group(u"☺", 25, Pos(right, bottom),  DIR_LEFT),
+    #     Group(u"✌", 36, Pos(left, top),      DIR_RIGHT),
+    #     Group(u"♪", 37, Pos(right, top),     DIR_LEFT, ROT_COUNTERCLOCKWISE),
+    # ]
 
 
 if __name__ == '__main__':
