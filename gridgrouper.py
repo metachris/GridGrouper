@@ -34,6 +34,7 @@ License:
 import sys
 import os
 import math
+from optparse import OptionParser
 
 # Do not change the settings below
 DIR_RIGHT = 0
@@ -56,21 +57,26 @@ class Pos(object):
     def __str__(self):
         return "<Pos(%s, %s)>" % (self.x, self.y)
 
+    @staticmethod
+    def copy(pos):
+        """Copy an existing Pos object to a new one"""
+        return Pos(pos.x, pos.y)
+
 
 class Grid(object):
     """Representation of the grid (theater seats)"""
     grid = []
-    rows = 0
     cols = 0
+    rows = 0
 
     EMPTY = u" "
 
-    def __init__(self, rows, cols):
+    def __init__(self, cols, rows):
         """Init Grid with - (empty seats)"""
-        self.rows = rows
-        self.cols = cols
-        for _ in xrange(rows):
-            self.grid.append(self.EMPTY * cols)
+        self.cols = int(cols)
+        self.rows = int(rows)
+        for _ in xrange(self.rows):
+            self.grid.append(self.EMPTY * self.cols)
 
     def is_free(self, pos):
         """Returns true if position in grid is free"""
@@ -147,26 +153,34 @@ class Group(object):
         Find an initial position in the grid, start at the bottom right and
         move left and up if too far left.
         """
-        # Tweak the number of minimum required free columns on the left
-        MIN_LEFT = 2
-
-        # Set initial position (almost) bottom right
+        # Start at bottom right (and work left and up)
         pos = Pos(self.grid.cols - 2, self.grid.rows - 2)
 
         # Search until found or out of space
         found = False
+        backup_pos = None
         while not found:
             if self.grid.is_free(pos):
-                return pos
+                backup_pos = pos
+                # Only use spot if column to the left is also free
+                if pos.x > 0 and self.grid.is_free(Pos(pos.x - 1, pos.y)):
+                    return pos
+
+            # Step 1 to the lefts
             pos.x -= 1
-            if pos.x < MIN_LEFT:
+
+            # Step up if necessary
+            if pos.x < 0:
                 pos.x = self.grid.cols - 1
                 pos.y -= 1
                 if pos.y < 0:
-                    raise IndexError("Could not find an initial position")
+                    if backup_pos:
+                        return backup_pos
+                    else:
+                        raise IndexError("Could not find an initial position")
 
     def occupy(self, grid):
-        """Occupy this groups part in the grid"""
+        """Start occupying this groups part in the grid"""
         self.grid = grid
 
         # Error out if there are not enough seats
@@ -179,7 +193,7 @@ class Group(object):
             self.cur_pos = self.find_initial_pos()
 
         # Set initial limits (1 in each direction)
-        self.limit_left = self.cur_pos.x - 1 if self.cur_pos.x - 1 >= 0 else 0
+        self.limit_left = self.cur_pos.x - 2 if self.cur_pos.x - 2 >= 0 else 0
         self.limit_right = self.cur_pos.x + 1 if self.cur_pos.x + 1 < \
                 grid.cols else grid.cols - 1
         self.limit_top = self.cur_pos.y - 1 if self.cur_pos.y - 1 >= 0 else 0
@@ -190,7 +204,7 @@ class Group(object):
         while (len(self.seats) < self.count):
             if self.grid.is_free(self.cur_pos):
                 self.grid.set_used(self.cur_pos, self.id)
-                self.seats.append(self.cur_pos)
+                self.seats.append(Pos.copy(self.cur_pos))
 
             # Update the current position, and change direction if necessary
             self.move()
@@ -255,44 +269,53 @@ class Group(object):
             if self.limit_top - 1 >= 0:
                 self.limit_top -= 1
 
+    def show_seats(self, delim="; "):
+        """Prints the seats of this group in csv like format"""
+        print "group-%s%s" % (self.id, delim) + \
+                delim.join(["%s,%s" % (pos.x, pos.y) for pos in self.seats])
 
-def main():
-    # Instantiate the grid (adjust size as wanted)
-    grid = Grid(rows=10, cols=19)
 
-    # Let groups eat into the grid, one by one
-    for group in get_groups(grid.rows, grid.cols):
+def build_groups(groups):
+    """Build the initial list of groups based on a list of sizes"""
+    # Symbols (id/representations) to use for the groups
+    symbols = [u"♥", u"☼", u"♪", u"✌", u"☺", u"x", u"/", u"#", u"@", u"o"]
+    if not len(groups):
+        # If no command-line specified group sizes, use default ones
+        groups = [35, 28, 25, 46, 36]
+    # Build the groups and return them in a list
+    return [Group(symbols[i], int(groups[i])) for i in xrange(len(groups))]
+
+
+def main(grid_size, group_sizes, output_format):
+    # Instantiate the grid
+    cols, rows = grid_size.split("x") if grid_size else (15, 10)
+    grid = Grid(cols=cols, rows=rows)
+
+    # Build the list of groups, based on the supplied sizes
+    groups = build_groups(group_sizes)
+
+    # Have the groups eat into the grid, one by one
+    for group in groups:
         group.occupy(grid)
 
-    # Pretty print the final grid
-    grid.show()
-
-
-def get_groups(rows, cols):
-    """Return the initial list of Groups"""
-    # 5 groups without start-parameters (will auto-position)
-    return [
-        Group(u"♥", 24),
-        Group(u"☼", 28),
-        Group(u"✌", 25),
-        Group(u"☺", 36),
-        Group(u"♪", 37),
-    ]
-
-    # You can manually set the initial position and other params like this:
-    # center = cols / 2
-    # left = 0
-    # top = 0
-    # right = cols - 1
-    # bottom = rows - 1
-    # return [
-    #     Group(u"♥", 24, Pos(center, bottom), DIR_LEFT),
-    #     Group(u"☼", 28, Pos(left, bottom),   DIR_TOP,  ROT_COUNTERCLOCKWISE),
-    #     Group(u"☺", 25, Pos(right, bottom),  DIR_LEFT),
-    #     Group(u"✌", 36, Pos(left, top),      DIR_RIGHT),
-    #     Group(u"♪", 37, Pos(right, top),     DIR_LEFT, ROT_COUNTERCLOCKWISE),
-    # ]
+    # Output either the final grid or the seats in csv
+    if output_format == "grid":
+        grid.show()
+    elif output_format == "csv":
+        for group in groups:
+            group.show_seats()
 
 
 if __name__ == '__main__':
-    main()
+    usage = """usage: %prog [options] size-group1 size-group2 ...
+
+    Example: %prog -s 10x15 20 30 10 14"""
+    parser = OptionParser(usage=usage)
+    parser.add_option("-s", "--size", dest="size",
+            help="Specify grid columns and rows (eg 15x10)", metavar="SIZE")
+    parser.add_option("-o", "--ouput", dest="output", choices=["grid", "csv"],
+            default="grid", help="Type of output ('grid' or 'csv')",
+            metavar="FORMAT")
+
+    (options, args) = parser.parse_args()
+    main(options.size, args, options.output)
